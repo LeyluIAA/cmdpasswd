@@ -21,18 +21,13 @@ def main(argv):
         print('this script needs a password')
 
     # Add and save a new record
-    addEntry(QueryCurs,'portail','toto')
-    addEntry(QueryCurs,'portail2','titi')
-    con.commit()
+    addEntry(QueryCurs,'portail','toto',con)
+    addEntry(QueryCurs,'portail2','titi',con)
+    addEntry(QueryCurs,'portail3','tata',con)
 
+    displayEntry(QueryCurs,'portail')
 
-    # Display a select all
-    QueryCurs.execute('SELECT * FROM credentials')
-
-    for i in QueryCurs:
-        (key, name, password) = i
-        print("\n{0}".format(name))
-        print base64.b64decode(password)
+    displayAll(QueryCurs)
 
     # Close connection
     QueryCurs.close()
@@ -40,15 +35,35 @@ def main(argv):
 # Create the table if it doesn't exist
 def createTable(cursor):
     cursor.execute('''CREATE TABLE credentials
-    (id INTEGER PRIMARY KEY, name TEXT, password TEXT)''')
+    (name TEXT PRIMARY KEY, password TEXT)''')
 
 # Add a new password
-def addEntry(cursor,name,password):
+def addEntry(cursor,name,password,con):
     encodedPassword = base64.b64encode(password)
     cursor.execute('''INSERT INTO credentials (name,password)
     VALUES (?,?)''',(name,encodedPassword))
+    con.commit()
 
-def removeEntry(cursor,name):
+# Display a select all
+def displayAll(cursor):
+    cursor.execute('SELECT * FROM credentials')
+
+    for i in cursor:
+        (key, name, password) = i
+        print("\n{0}".format(name))
+        print base64.b64decode(password)
+
+# Display one specific password
+def displayEntry(cursor, name):
+	cursor.execute('''SELECT name, password FROM credentials WHERE name like (?)''',(name))
+
+	for i in cursor:
+		(key, name, password) = i
+        print("\n{0}".format(name))
+        print base64.b64decode(password)
+
+# Remove an password
+def removeEntry(cursor,name,con):
     pass
 
 
