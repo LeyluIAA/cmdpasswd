@@ -2,18 +2,11 @@ import sqlite3
 import base64
 import sys
 import getopt
-import os.path
 
 def main(argv):
 
-    # Test if database already exist or not
-    if not os.path.isfile('pass.db'):
-        con = sqlite3.connect('pass.db')
-        QueryCurs = con.cursor()
-        createTable(QueryCurs)
-    else:
-        con = sqlite3.connect('pass.db')
-        QueryCurs = con.cursor()
+    con = sqlite3.connect('pass.db')
+    createTable(con)
 
     if len(argv) > 1:
         print('password is {0}'.format(argv[1]))
@@ -21,51 +14,87 @@ def main(argv):
         print('this script needs a password')
 
     # Add and save a new record
-    addEntry(QueryCurs,'portail','toto',con)
-    addEntry(QueryCurs,'portail2','titi',con)
-    addEntry(QueryCurs,'portail3','tata',con)
+    addEntry(con,'portail','toto')
+    addEntry(con,'facebook','titi')
+    addEntry(con,'twitter','tata')
 
-    displayEntry(QueryCurs,'portail')
-
-    displayAll(QueryCurs)
-
-    # Close connection
-    QueryCurs.close()
+    displayAll(con)
+    #removeEntry(con,'eurk')
+    displayAll(con)
 
 # Create the table if it doesn't exist
-def createTable(cursor):
-    cursor.execute('''CREATE TABLE credentials
-    (name TEXT PRIMARY KEY, password TEXT)''')
+def createTable(con):
+
+    cursor = con.cursor()
+
+    try:
+        cursor.execute('''CREATE TABLE credentials
+        (name TEXT PRIMARY KEY, password TEXT)''')
+        con.commit()
+        cursor.close()
+        print("database successfully created")
+        return True
+
+    except:
+        cursor.close()
+        return False
 
 # Add a new password
-def addEntry(cursor,name,password,con):
-    encodedPassword = base64.b64encode(password)
-    cursor.execute('''INSERT INTO credentials (name,password)
-    VALUES (?,?)''',(name,encodedPassword))
-    con.commit()
+def addEntry(con, name,password):
+
+    cursor = con.cursor()
+
+    try:
+        encodedPassword = base64.b64encode(password)
+        cursor.execute('''INSERT INTO credentials (name,password)
+        VALUES (?,?)''',(name,encodedPassword))
+        con.commit()
+        cursor.close()
+        print('password successfully inserted')
+        return True
+    except:
+        cursor.close()
+        print("this name already exist in database")
+        return False
 
 # Display a select all
-def displayAll(cursor):
+def displayAll(con):
+
+    cursor = con.cursor()
     cursor.execute('SELECT * FROM credentials')
 
     for i in cursor:
-        (key, name, password) = i
+        (name, password) = i
         print("\n{0}".format(name))
         print base64.b64decode(password)
+
+    cursor.close()
 
 # Display one specific password
-def displayEntry(cursor, name):
-	cursor.execute('''SELECT name, password FROM credentials WHERE name like (?)''',(name))
+def displayEntry(con, name):
 
-	for i in cursor:
-		(key, name, password) = i
+    cursor = con.cursor()
+    cursor.execute('''SELECT name, password FROM credentials WHERE name=?''',(name,))
+
+    for i in cursor:
+        (name, password) = i
         print("\n{0}".format(name))
         print base64.b64decode(password)
 
-# Remove an password
-def removeEntry(cursor,name,con):
-    pass
+    cursor.close()
 
+# Remove an password
+def removeEntry(con,name):
+
+    cursor = con.cursor()
+
+    cursor.execute('''DELETE FROM credentials WHERE name=?''',(name,))
+    con.commit()
+
+    cursor.close()
+
+def updateEntry(con,name):
+    pass
 
 if __name__ == "__main__":
     main(sys.argv[1:])
