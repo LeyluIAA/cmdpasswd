@@ -8,7 +8,7 @@ def main(argv):
     con = sqlite3.connect('pass.db')
 
     try:
-        opts, args = getopt.getopt(argv, 'hlcp:o:an:m:rux:')
+        opts, args = getopt.getopt(argv, 'hlc:p:o:a:r:u:x:')
     except Exception as err:
         print err
         sys.exit()
@@ -34,41 +34,35 @@ def main(argv):
                     if checkPass(con,arg):
                         displayEntry(con,name)
         if opt == '-c':
-            for opt, arg in opts:
-                if opt == '-p':
-                    createTable(con)
-                    addEntry(con,'connect',arg)
+            createTable(con)
+            addEntry(con,'connect',arg)
         if opt == '-a':
+            newname = arg
             for opt, arg in opts:
                 if opt == '-p':
                     if checkPass(con,arg):
                         for opt, arg in opts:
-                            if opt == '-n':
-                                newname = arg
-                            elif opt == '-m':
+                            if opt == '-x':
                                 newpassword = arg
                     try:
                         addEntry(con,newname,newpassword)
                     except:
                         print('missing arguments')
         if opt == '-r':
+            oldname = arg
             for opt, arg in opts:
                 if opt == '-p':
                     if checkPass(con,arg):
-                        for opt, arg in opts:
-                            if opt == '-n':
-                                oldname = arg
-                    try:
-                        removeEntry(con,oldname)
-                    except:
-                        print('missing arguments')
+                        try:
+                            removeEntry(con,oldname)
+                        except:
+                            print('Wrong password')
         if opt == '-u':
+            name = arg
             for opt, arg in opts:
                 if opt == '-p':
                     if checkPass(con,arg):
                         for opt, arg in opts:
-                            if opt == '-n':
-                                name = arg
                             if opt == '-x':
                                 newx = arg
                     try:
@@ -77,7 +71,14 @@ def main(argv):
                         print('missing arguments')
 
 def usage():
-    print('usage: python {0} -h --help for help'.format(sys.argv[0]))
+    print('''usage: python {0} [options] [arguments]\n
+          -h --help for help
+          -c password : Create the database
+          -l -p password : List all passwords
+          -o name -p password : Display a password
+          -a name -p password -x password-to-add : Add a password
+          -r oldname -p password : Remove a password
+          -u name -p password -x newpassword : Update a password'''.format(sys.argv[0]))
 
 # Create the table if it doesn't exist
 def createTable(con):
@@ -91,7 +92,6 @@ def createTable(con):
         cursor.close()
         print('database successfully created')
         return True
-
     except:
         cursor.close()
         return False
