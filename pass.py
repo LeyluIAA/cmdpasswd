@@ -1,12 +1,20 @@
+#!/usr/bin/env python
+
+"""
+Command line password manager.
+This tool let you securely store passwords and display them.
+"""
+
 import sqlite3
 import base64
 import sys
 import getopt
 
 def main(argv):
-
+	# Connect to the database
     con = sqlite3.connect('pass.db')
 
+    # Get options and args
     try:
         opts, args = getopt.getopt(argv, 'hlc:p:o:a:r:u:x:')
     except Exception as err:
@@ -15,73 +23,90 @@ def main(argv):
 
     newx = ''
 
+    # If no options, print help
     if len(opts) is 0 and len(args) is 0:
         usage()
         sys.exit()
 
+    # Do specific actions depends on options
     for opt, arg in opts:
+    	# Display help
         if opt in ('-h'):
             usage()
+        # Display all passwords
         if opt == '-l':
             for opt, arg in opts:
                 if opt == '-p':
-                    if checkPass(con,arg):
-                        displayAll(con)
+                    if check_pass(con, arg):
+                        display_all(con)
+        # Display a specific password
         if opt == '-o':
             name = arg
             for opt, arg in opts:
                 if opt == '-p':
-                    if checkPass(con,arg):
-                        displayEntry(con,name)
+                    if check_pass(con, arg):
+                        display_entry(con, name)
+        # Create the database
         if opt == '-c':
-            createTable(con)
-            addEntry(con,'connect',arg)
+            create_table(con)
+            add_entry(con,'connect',arg)
+        # Add a password
         if opt == '-a':
             newname = arg
             for opt, arg in opts:
                 if opt == '-p':
-                    if checkPass(con,arg):
+                    if check_pass(con, arg):
                         for opt, arg in opts:
                             if opt == '-x':
                                 newpassword = arg
                     try:
-                        addEntry(con,newname,newpassword)
+                        add_entry(con, newname, newpassword)
                     except:
                         print('missing arguments')
+        # Remove a password
         if opt == '-r':
             oldname = arg
             for opt, arg in opts:
                 if opt == '-p':
-                    if checkPass(con,arg):
+                    if check_pass(con, arg):
                         try:
-                            removeEntry(con,oldname)
+                            remove_entry(con, oldname)
                         except:
                             print('Wrong password')
+        # Update a password
         if opt == '-u':
             name = arg
             for opt, arg in opts:
                 if opt == '-p':
-                    if checkPass(con,arg):
+                    if check_pass(con, arg):
                         for opt, arg in opts:
                             if opt == '-x':
                                 newx = arg
                     try:
-                        updateEntry(con,name,newx)
+                        update_entry(con, name, newx)
                     except:
                         print('missing arguments')
 
 def usage():
-    print('''usage: python {0} [options] [arguments]\n
+	"""
+	Give the usage to the user
+    """
+
+    print('''usage: python {0} [options] [arguments]
           -h --help for help
           -c password : Create the database
           -l -p password : List all passwords
           -o name -p password : Display a password
           -a name -p password -x password-to-add : Add a password
           -r oldname -p password : Remove a password
-          -u name -p password -x newpassword : Update a password'''.format(sys.argv[0]))
+          -u name -p password -x newpassword : Update a password
+          '''.format(sys.argv[0]))
 
-# Create the table if it doesn't exist
-def createTable(con):
+def create_table(con):
+	"""
+	Create a table.
+	:param object con: connection to the database
+	"""
 
     cursor = con.cursor()
 
@@ -91,17 +116,22 @@ def createTable(con):
         con.commit()
         cursor.close()
         print('database successfully created')
-        return True
     except:
         cursor.close()
-        return False
 
-# Check if the given password is correct
-def checkPass(con,checkpass):
+def check_pass(con, checkpass):
+	"""
+	Check if the auth password is correct
+	:param object con: connection to the database
+	:param string checkpass: user password to authenticate him on the app
+	:return type boolean:
+	"""
 
     cursor = con.cursor()
 
-    cursor.execute('''SELECT password FROM credentials WHERE name=?''',('connect',))
+    cursor.execute(
+    	'''SELECT password FROM credentials WHERE name=?''',
+    	('connect',))
 
     for i in cursor:
         (password,) = i
@@ -110,26 +140,32 @@ def checkPass(con,checkpass):
     cursor.close()
     return decodedpassword == checkpass
 
-# Add a new password
-def addEntry(con, name,password):
+def add_entry(con, name, password):
+	"""
+	Add a new password
+	:param object con: connection to the database
+	:param string name: name of the new password
+	:param string password: password to add
+	"""
 
     cursor = con.cursor()
 
     try:
         encodedPassword = base64.b64encode(password)
         cursor.execute('''INSERT INTO credentials (name,password)
-        VALUES (?,?)''',(name,encodedPassword))
+        VALUES (?,?)''',(name, encodedPassword))
         con.commit()
         cursor.close()
         print('password successfully inserted')
-        return True
     except:
         cursor.close()
         print('this name already exist in database')
-        return False
 
-# Display a select all
-def displayAll(con):
+def display_all(con):
+	"""
+	Display all passwords
+	:param object con: connection to the database
+	"""
 
     cursor = con.cursor()
     try:
@@ -145,13 +181,19 @@ def displayAll(con):
         cursor.close()
         print('Display failed. Probably because the database does not exist.')
 
-# Display one specific password
-def displayEntry(con, name):
+def display_entry(con, name):
+	"""
+	Display a specific password
+	:param object con: connection to the database
+	:param string name: password name to display
+	"""
 
     cursor = con.cursor()
 
     try:
-        cursor.execute('''SELECT name, password FROM credentials WHERE name=?''',(name,))
+        cursor.execute(
+        	'''SELECT name, password FROM credentials WHERE name=?''',
+        	(name,))
 
         for i in cursor:
             (name, password) = i
@@ -163,8 +205,12 @@ def displayEntry(con, name):
         print('this name does not exist in database')
         sys.exit()
 
-# Remove an password
-def removeEntry(con,name):
+def remove_entry(con, name):
+	"""
+	Remove a password
+	:param object con: connection to the database
+	:param string name: password name to remove
+	"""
 
     cursor = con.cursor()
 
@@ -174,13 +220,22 @@ def removeEntry(con,name):
     print('password successfully removed')
     cursor.close()
 
-def updateEntry(con,name,newpass):
+def update_entry(con, name, newpass):
+	"""
+	Update a password
+	:param object con: connection to the database
+	:param string name: password name to update
+	:param string newpass: new password to set
+	"""
+
     cursor = con.cursor()
 
     encodedPassword = base64.b64encode(newpass)
 
     try:
-        cursor.execute('''UPDATE credentials SET password=? WHERE name=?''',(encodedPassword,name))
+        cursor.execute(
+        	'''UPDATE credentials SET password=? WHERE name=?''',
+        	(encodedPassword, name))
         con.commit()
         cursor.close()
         print('Update successful')
