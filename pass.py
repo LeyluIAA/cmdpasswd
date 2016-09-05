@@ -270,11 +270,9 @@ def update_entry(con, name, newpass):
         con.commit()
         cursor.close()
         print('Update successful')
-        return True
     except:
         cursor.close()
         print('Update failed')
-        return False
 
 if __name__ == '__main__':
     main(sys.argv[1:])
