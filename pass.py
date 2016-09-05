@@ -7,8 +7,8 @@ This tool let you securely store passwords and display them.
 
 import sqlite3
 import base64
-import sys
-import getopt
+import sys, getopt
+import hashlib, binascii, uuid
 
 def main(argv):
 	# Connect to the database
@@ -16,7 +16,7 @@ def main(argv):
 
     # Get options and args
     try:
-        opts, args = getopt.getopt(argv, 'hlc:p:o:a:r:u:x:')
+        opts, args = getopt.getopt(argv, 'hlcpo:a:r:u:x:')
     except Exception as err:
         print err
         sys.exit()
@@ -37,7 +37,8 @@ def main(argv):
         if opt == '-l':
             for opt, arg in opts:
                 if opt == '-p':
-                    if check_pass(con, arg):
+                    arg = raw_input('Enter a password: ')
+                    if check_password(con, arg):
                         display_all(con)
                     else:
                     	print('wrong password')
@@ -48,7 +49,8 @@ def main(argv):
             for opt, arg in opts:
                 if opt == '-p':
                     count += 1
-                    if check_pass(con, arg):
+                    arg = raw_input('Enter a password: ')
+                    if check_password(con, arg):
                         display_entry(con, name)
                     else:
                     	print('wrong password')
@@ -57,7 +59,9 @@ def main(argv):
         # Create the database
         if opt == '-c':
             create_table(con)
-            add_entry(con,'connect',arg)
+            arg = raw_input('Enter a password to access database: ')
+            hash_pass = hash_password(arg)
+            add_entry(con, 'connect', hash_pass)
         # Add a password
         if opt == '-a':
             newname = arg
@@ -65,7 +69,8 @@ def main(argv):
             for opt, arg in opts:
                 if opt == '-p':
                     count += 1
-                    if check_pass(con, arg):
+                    arg = raw_input('Enter a password: ')
+                    if check_password(con, arg):
                         for opt, arg in opts:
                             if opt == '-x':
                                 newpassword = arg
@@ -84,7 +89,8 @@ def main(argv):
             for opt, arg in opts:
                 if opt == '-p':
                     count += 1
-                    if check_pass(con, arg):
+                    arg = raw_input('Enter a password: ')
+                    if check_password(con, arg):
                         try:
                             remove_entry(con, oldname)
                         except:
@@ -98,7 +104,8 @@ def main(argv):
             for opt, arg in opts:
                 if opt == '-p':
                     count += 1
-                    if check_pass(con, arg):
+                    arg = raw_input('Enter a password: ')
+                    if check_password(con, arg):
                         for opt, arg in opts:
                             if opt == '-x':
                                 count += 2
@@ -127,6 +134,44 @@ def usage():
             -r oldname -p password : Remove a password
             -u name -p password -x newpassword : Update a password\
             '''.format(sys.argv[0]))
+
+def hash_password(password):
+    """
+    Hash a password
+    :param string password: user password
+    :return string hashed password:
+    """
+
+    # uuid is used to generate a random number
+    salt = uuid.uuid4().hex
+    return hashlib.sha512(salt.encode() + password.encode()).hexdigest() + ':' + salt
+
+def check_password(con, user_password):
+    """
+    Check if password is correct or not
+    :param string hashed_password: hashed password
+    :param string user_password: user password
+    :return boolean:
+    """
+
+    cursor = con.cursor()
+
+    try:
+        cursor.execute(
+            '''SELECT password FROM credentials WHERE name=?''',
+            ('connect',))
+
+        for i in cursor:
+            (password,) = i
+
+        cursor.close()
+
+        password, salt = hashed_password.split(':')
+        return password == hashlib.sha512(salt.encode() + user_password.encode()).hexdigest()
+    except:
+        print('Impossible to check the access, is the DB correctly created ?')
+        cursor.close()
+        sys.exit()
 
 def create_table(con):
     """
