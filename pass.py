@@ -83,7 +83,7 @@ def main(argv):
             count = 0
             for opt, arg in opts:
                 if opt == '-p':
-                	count += 1
+                    count += 1
                     if check_pass(con, arg):
                         try:
                             remove_entry(con, oldname)
@@ -205,8 +205,7 @@ def display_all(con):
 
         for i in cursor:
             (name, password) = i
-            print('\n{0}'.format(name))
-            print base64.b64decode(password)
+            print('\n{0}: {1}'.format(name, base64.b64decode(password)))
 
         cursor.close()
     except:
@@ -229,8 +228,8 @@ def display_entry(con, name):
 
         for i in cursor:
             (name, password) = i
-            print("\n{0}".format(name))
-            print base64.b64decode(password)
+            print('\n{0}: {1}'.format(name, base64.b64decode(password)))
+
         cursor.close()
     except:
         cursor.close()
