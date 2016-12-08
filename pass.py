@@ -33,6 +33,7 @@ def main(argv):
     	# Display help
         if opt in ('-h'):
             usage()
+            sys.exit()
         # Display all passwords
         if opt == '-l':
             for opt, arg in opts:
@@ -60,7 +61,7 @@ def main(argv):
         if opt == '-c':
             create_table(con)
             arg = raw_input('Enter a password to access database: ')
-            hash_pass = hash_password(arg)
+            hash_pass = base64.b64decode(arg)
             add_entry(con, 'connect', hash_pass)
         # Add a password
         if opt == '-a':
@@ -70,7 +71,7 @@ def main(argv):
                 if opt == '-p':
                     count += 1
                     arg = raw_input('Enter a password: ')
-                    if check_password(con, arg):
+                    if check_pass(con, arg):
                         for opt, arg in opts:
                             if opt == '-x':
                                 newpassword = arg
@@ -167,6 +168,7 @@ def check_password(con, user_password):
         cursor.close()
 
         password, salt = hashed_password.split(':')
+        print('coucou')
         return password == hashlib.sha512(salt.encode() + user_password.encode()).hexdigest()
     except:
         print('Impossible to check the access, is the DB correctly created ?')
