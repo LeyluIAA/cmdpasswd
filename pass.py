@@ -8,133 +8,130 @@ This tool let you securely store passwords and display them.
 import sqlite3
 import base64
 import sys, getopt
+import os.path
 import hashlib, binascii, uuid
+import argparse
 
 def main(argv):
-	# Connect to the database
-    con = sqlite3.connect('pass.db')
+
+    if os.path.isfile('pass.db'):
+        # Connect to the database
+        con = sqlite3.connect('pass.db')
 
     # Get options and args
     try:
-        opts, args = getopt.getopt(argv, 'hlcpo:a:r:u:x:')
+        ap = argparse.ArgumentParser(
+            description='Password manager in command line'
+        )
+
+        ap.add_argument(
+            '-c',
+            '--create',
+            action='store_true',
+            help='Create the database'
+        )
+
+        ap.add_argument(
+            '-a',
+            '--add',
+            action='store_true',
+            help='Add a new password'
+        )
+
+        ap.add_argument(
+            '-l',
+            '--list',
+            action='store_true',
+            help='List all password'
+        )
+
+        ap.add_argument(
+            '-o',
+            '--one',
+            action='store_true',
+            help='Display only one password'
+        )
+
+        ap.add_argument(
+            '-r',
+            '--remove',
+            action='store_true',
+            help='Remove a password'
+        )
+
+        ap.add_argument(
+            '-u',
+            '--update',
+            action='store_true',
+            help='Update a password'
+        )
+
+        opts = ap.parse_args(argv)
+
     except Exception as err:
         print err
         sys.exit()
 
-    newx = ''
-
-    # If no options, print help
-    if len(opts) is 0 and len(args) is 0:
-        usage()
-        sys.exit()
-
-    # Do specific actions depends on options
-    for opt, arg in opts:
-    	# Display help
-        if opt in ('-h'):
-            usage()
-            sys.exit()
-        # Display all passwords
-        if opt == '-l':
-            for opt, arg in opts:
-                if opt == '-p':
-                    arg = raw_input('Enter a password: ')
-                    if check_password(con, arg):
-                        display_all(con)
-                    else:
-                    	print('wrong password')
-        # Display a specific password
-        if opt == '-o':
-            name = arg
-            count = 0
-            for opt, arg in opts:
-                if opt == '-p':
-                    count += 1
-                    arg = raw_input('Enter a password: ')
-                    if check_password(con, arg):
-                        display_entry(con, name)
-                    else:
-                    	print('wrong password')
-            if not count:
-            	print('missing arguments')
-        # Create the database
-        if opt == '-c':
+    if opts.create:
+        if os.path.isfile('pass.db'):
+            print('==== Database already exist ====')
+            quit()
+        else:
+            con = sqlite3.connect('pass.db')
             create_table(con)
             arg = raw_input('Enter a password to access database: ')
-            hash_pass = base64.b64decode(arg)
-            add_entry(con, 'connect', hash_pass)
-        # Add a password
-        if opt == '-a':
-            newname = arg
-            count = 0
-            for opt, arg in opts:
-                if opt == '-p':
-                    count += 1
-                    arg = raw_input('Enter a password: ')
-                    if check_pass(con, arg):
-                        for opt, arg in opts:
-                            if opt == '-x':
-                                newpassword = arg
-                    else:
-                        print('wrong password')
-                    try:
-                        add_entry(con, newname, newpassword)
-                    except:
-                        print('missing arguments')
-            if not count:
-                print('missing arguments')
-        # Remove a password
-        if opt == '-r':
-            oldname = arg
-            count = 0
-            for opt, arg in opts:
-                if opt == '-p':
-                    count += 1
-                    arg = raw_input('Enter a password: ')
-                    if check_password(con, arg):
-                        try:
-                            remove_entry(con, oldname)
-                        except:
-                            print('Wrong password')
-            if not count:
-                print('missing arguments')
-        # Update a password
-        if opt == '-u':
-            name = arg
-            count = 0
-            for opt, arg in opts:
-                if opt == '-p':
-                    count += 1
-                    arg = raw_input('Enter a password: ')
-                    if check_password(con, arg):
-                        for opt, arg in opts:
-                            if opt == '-x':
-                                count += 2
-                                newx = arg
-                                try:
-                                    update_entry(con, name, newx)
-                                except:
-                                    print('missing arguments')
-                        if count < 2:
-                            print('missing arguments')
-            if not count:
-                print('missing arguments')
+            add_entry(con, 'connect', arg)
+            quit()
 
-def usage():
-	"""
-	Give the usage to the user
-    """
+    if opts.add:
+        arg = raw_input('Please authenticate: ')
+        if check_pass(con, arg):
+            newname = raw_input('Enter a name for your password: ')
+            newpassword = raw_input('Enter a password: ')
+            add_entry(con, newname, newpassword)
+            quit()
+        else:
+            quit()
 
-	print('''\
-    	usage: python {0} [options] [arguments]
-            -h --help for help
-            -c password : Create the database
-            -l -p password : List all passwords
-            -o name -p password : Display a password
-            -a name -p password -x password-to-add : Add a password
-            -r oldname -p password : Remove a password
-            -u name -p password -x newpassword : Update a password\
-            '''.format(sys.argv[0]))
+    if opts.list:
+        arg = raw_input('Please authenticate: ')
+        if check_pass(con, arg):
+            display_all(con)
+            quit()
+        else:
+            quit()
+
+    if opts.one:
+        arg = raw_input('Please authenticate: ')
+        if check_pass(con, arg):
+            name = raw_input('Which password do you want to display? ')
+            display_entry(con, name)
+            quit()
+        else:
+            quit()
+
+    if opts.remove:
+        arg = raw_input('Please authenticate: ')
+        if check_pass(con, arg):
+            oldname = raw_input(
+                'Type the name of password you want to remove: '
+            )
+            remove_entry(con, oldname)
+            quit()
+        else:
+            quit()
+
+    if opts.update:
+        arg = raw_input('Please authenticate: ')
+        if check_pass(con, arg):
+            name = raw_input(
+                'Type the name of password you want to update: '
+            )
+            newx = raw_input('Type the new password: ')
+            update_entry(con, name, newx)
+            quit()
+        else:
+            quit()
 
 def hash_password(password):
     """
@@ -168,7 +165,6 @@ def check_password(con, user_password):
         cursor.close()
 
         password, salt = hashed_password.split(':')
-        print('coucou')
         return password == hashlib.sha512(salt.encode() + user_password.encode()).hexdigest()
     except:
         print('Impossible to check the access, is the DB correctly created ?')
@@ -213,7 +209,12 @@ def check_pass(con, checkpass):
             decodedpassword = base64.b64decode(password)
 
         cursor.close()
-        return decodedpassword == checkpass
+
+        if decodedpassword == checkpass:
+            return True
+        else:
+            print('==== Authentication failed ====')
+            return False
     except:
     	print('Impossible to check the access, is the DB correctly created ?')
     	cursor.close()
