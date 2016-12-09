@@ -69,7 +69,7 @@ def main(argv):
         opts = ap.parse_args(argv)
 
     except Exception as err:
-        print err
+        print(err)
         sys.exit()
 
     if opts.create:
@@ -186,7 +186,7 @@ def create_table(con):
         cursor.close()
         print('database successfully created')
     except:
-    	print('Impossible to create the database')
+        print('Impossible to create the database')
         cursor.close()
 
 def check_pass(con, checkpass):
