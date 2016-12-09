@@ -80,15 +80,16 @@ def main(argv):
             con = sqlite3.connect('pass.db')
             create_table(con)
             arg = raw_input('Enter a password to access database: ')
-            add_entry(con, 'connect', arg)
+            add_entry(con, 'connect', 'admin', arg)
             quit()
 
     if opts.add:
         arg = raw_input('Please authenticate: ')
         if check_pass(con, arg):
             newname = raw_input('Enter a name for your password: ')
+            identity = raw_input('Enter a id: ')
             newpassword = raw_input('Enter a password: ')
-            add_entry(con, newname, newpassword)
+            add_entry(con, newname, identity, newpassword)
             quit()
         else:
             quit()
@@ -127,8 +128,11 @@ def main(argv):
             name = raw_input(
                 'Type the name of password you want to update: '
             )
+            identity = raw_input(
+                'Type the new id: '
+            )
             newx = raw_input('Type the new password: ')
-            update_entry(con, name, newx)
+            update_entry(con, name, identity, newx)
             quit()
         else:
             quit()
@@ -142,7 +146,7 @@ def hash_password(password):
 
     # uuid is used to generate a random number
     salt = uuid.uuid4().hex
-    return hashlib.sha512(salt.encode() + password.encode()).hexdigest() + ':' + salt
+    return hashlib.sha512(salt.encode() + password.encod,e()).hexdigest() + ':' + salt
 
 def check_password(con, user_password):
     """
@@ -181,7 +185,7 @@ def create_table(con):
 
     try:
         cursor.execute('''CREATE TABLE credentials
-        (name TEXT PRIMARY KEY, password TEXT)''')
+        (name TEXT PRIMARY KEY, identity TEXT, password TEXT)''')
         con.commit()
         cursor.close()
         print('database successfully created')
@@ -220,7 +224,7 @@ def check_pass(con, checkpass):
     	cursor.close()
     	sys.exit()
 
-def add_entry(con, name, password):
+def add_entry(con, name, identity, password):
     """
     Add a new password
     :param object con: connection to the database
@@ -232,8 +236,8 @@ def add_entry(con, name, password):
 
     try:
         encodedPassword = base64.b64encode(password)
-        cursor.execute('''INSERT INTO credentials (name,password)
-        VALUES (?,?)''',(name, encodedPassword))
+        cursor.execute('''INSERT INTO credentials (name, identity, password)
+        VALUES (?,?,?)''',(name, identity, encodedPassword))
         con.commit()
         cursor.close()
         print('password successfully inserted')
@@ -250,10 +254,17 @@ def display_all(con):
     cursor = con.cursor()
     try:
         cursor.execute('SELECT * FROM credentials')
-
+        print('List of all passwords: \n')
+        print('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n')
         for i in cursor:
-            (name, password) = i
-            print('\n{0}: {1}'.format(name, base64.b64decode(password)))
+            (name, identity, password) = i
+            print('{0}\n id: {1}\n password: {2}\n'.format(
+                    name,
+                    identity,
+                    base64.b64decode(password)
+                )
+            )
+            print('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n')
 
         cursor.close()
     except:
@@ -271,12 +282,19 @@ def display_entry(con, name):
 
     try:
         cursor.execute(
-        	'''SELECT name, password FROM credentials WHERE name=?''',
+        	'''SELECT name, identity, password FROM credentials WHERE name=?''',
         	(name,))
 
+        print('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n')
         for i in cursor:
-            (name, password) = i
-            print('\n{0}: {1}'.format(name, base64.b64decode(password)))
+            (name, identity, password) = i
+            print('{0}\n id: {1}\n password: {2}\n'.format(
+                    name,
+                    identity,
+                    base64.b64decode(password)
+                )
+            )
+            print('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n')
 
         cursor.close()
     except:
@@ -299,7 +317,7 @@ def remove_entry(con, name):
     print('password successfully removed')
     cursor.close()
 
-def update_entry(con, name, newpass):
+def update_entry(con, name, identity, newpass):
     """
     Update a password
     :param object con: connection to the database
@@ -313,8 +331,8 @@ def update_entry(con, name, newpass):
 
     try:
         cursor.execute(
-        	'''UPDATE credentials SET password=? WHERE name=?''',
-        	(encodedPassword, name))
+        	'''UPDATE credentials SET password=?, identity=? WHERE name=?''',
+        	(encodedPassword, identity, name))
         con.commit()
         cursor.close()
         print('Update successful')
