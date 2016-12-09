@@ -10,7 +10,7 @@ import base64
 import sys, getopt
 import os.path
 import hashlib, binascii, uuid
-import argparse
+import argparse, getpass
 
 def main(argv):
 
@@ -79,23 +79,23 @@ def main(argv):
         else:
             con = sqlite3.connect('pass.db')
             create_table(con)
-            arg = raw_input('Enter a password to access database: ')
+            arg = getpass.getpass('Enter a password to access database: ')
             add_entry(con, 'connect', 'admin', arg)
             quit()
 
     if opts.add:
-        arg = raw_input('Please authenticate: ')
+        arg = getpass.getpass('Please authenticate: ')
         if check_pass(con, arg):
             newname = raw_input('Enter a name for your password: ')
             identity = raw_input('Enter a id: ')
-            newpassword = raw_input('Enter a password: ')
+            newpassword = getpass.getpass('Enter a password: ')
             add_entry(con, newname, identity, newpassword)
             quit()
         else:
             quit()
 
     if opts.list:
-        arg = raw_input('Please authenticate: ')
+        arg = getpass.getpass('Please authenticate: ')
         if check_pass(con, arg):
             display_all(con)
             quit()
@@ -103,7 +103,7 @@ def main(argv):
             quit()
 
     if opts.one:
-        arg = raw_input('Please authenticate: ')
+        arg = getpass.getpass('Please authenticate: ')
         if check_pass(con, arg):
             name = raw_input('Which password do you want to display? ')
             display_entry(con, name)
@@ -112,7 +112,7 @@ def main(argv):
             quit()
 
     if opts.remove:
-        arg = raw_input('Please authenticate: ')
+        arg = getpass.getpass('Please authenticate: ')
         if check_pass(con, arg):
             oldname = raw_input(
                 'Type the name of password you want to remove: '
@@ -123,7 +123,7 @@ def main(argv):
             quit()
 
     if opts.update:
-        arg = raw_input('Please authenticate: ')
+        arg = getpass.getpass('Please authenticate: ')
         if check_pass(con, arg):
             name = raw_input(
                 'Type the name of password you want to update: '
@@ -131,7 +131,7 @@ def main(argv):
             identity = raw_input(
                 'Type the new id: '
             )
-            newx = raw_input('Type the new password: ')
+            newx = getpass.getpass('Type the new password: ')
             update_entry(con, name, identity, newx)
             quit()
         else:
@@ -253,7 +253,9 @@ def display_all(con):
 
     cursor = con.cursor()
     try:
-        cursor.execute('SELECT * FROM credentials')
+        cursor.execute('''SELECT * FROM credentials WHERE name!=?''',
+            ('connect',)
+        )
         print('List of all passwords: \n')
         print('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n')
         for i in cursor:
